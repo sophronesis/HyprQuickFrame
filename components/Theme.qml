@@ -24,7 +24,7 @@ QtObject {
     readonly property color barBorder: _get("barBorder", Qt.rgba(1, 1, 1, 0.15))
     readonly property color barText: _get("barText", "#AAFFFFFF")
     readonly property color barShadow: _get("barShadow", "#80000000")
-    readonly property color toggleBackground: _get("toggleBackground", "white")
+    readonly property color toggleBackground: _get("toggleBackground", accent)
     readonly property color toggleShadow: _get("toggleShadow", "#80000000")
     readonly property color toggleEdit: _get("toggleEdit", "#1ABC9C")
     readonly property color toggleTemp: _get("toggleTemp", "#2C66D8")
