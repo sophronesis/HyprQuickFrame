@@ -26,8 +26,6 @@ text = "#AAFFFFFF"
 shadow = "#80000000"
 
 [toggle]
-# Pill background for edit/temp/share buttons
-background = "white"
 # Drop shadow under toggle pills
 shadow = "#80000000"
 # Edit toggle icon color
