@@ -25,6 +25,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+ 
 import QtQuick  
 import Quickshell.Hyprland
 
@@ -47,7 +48,7 @@ Item {
     property real dimOpacity: 0.6  
     property real borderRadius: 10.0  
     property real outlineThickness: 2.0  
-    property url fragmentShader: Qt.resolvedUrl("dimming.frag.qsb")  
+    property url fragmentShader: Qt.resolvedUrl("../shaders/dimming.frag.qsb")  
       
     property point startPos  
     property real selectionX: 0  

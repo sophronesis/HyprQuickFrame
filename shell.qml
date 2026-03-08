@@ -13,6 +13,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Widgets
+import "components"
 
 FreezeScreen {
     id: root
@@ -28,9 +29,7 @@ FreezeScreen {
     property int connectivityStatus: 0
     property string lastSavedPath: ""
     property string lastTimestamp: ""
-    readonly property real tabItemSize: 100
-    readonly property real controlHeight: 50
-    readonly property real targetMenuWidth: (modes.length - (editActive ? 1 : 0) - (tempActive ? 1 : 0)) * tabItemSize + 8
+    readonly property real targetMenuWidth: (modes.length - (editActive ? 1 : 0) - (tempActive ? 1 : 0)) * 100 + 8
 
     function parseTOML(text) {
         let result = {
@@ -73,6 +72,7 @@ FreezeScreen {
                 continue;
             }
         }
+        console.log("Parsed TOML:", JSON.stringify(result));
         return result;
     }
 
@@ -108,7 +108,8 @@ FreezeScreen {
     function runPostSaveHook() {
         const hook = theme.postSaveHook;
         if (!hook || !root.lastSavedPath)
-            return;
+            return ;
+
         const filePath = root.lastSavedPath;
         const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
         const dirPath = filePath.substring(0, filePath.lastIndexOf('/'));
@@ -142,11 +143,13 @@ FreezeScreen {
         const mkdirCmd = `mkdir -p ${ePicturesDir}`;
         const cropCmd = `magick ${eTempPath} -crop ` + `${crop.scaledWidth}x${crop.scaledHeight}` + `+${crop.cropX}+${crop.cropY}`;
         const sattyCommand = `${mkdirCmd} && ${cropCmd} png:- ` + `| satty --filename - ` + `--output-filename ${eOutputPath} --early-exit --init-tool brush ` + `&& wl-copy --type image/png < ${eOutputPath}` + `${maybeShare(eOutputPath)}; rm -f ${eTempPath}`;
+        const gradiaCommand = `${mkdirCmd} && ${cropCmd} ${eOutputPath} && hyprctl dispatch exec -- "gradia ${eOutputPath} || flatpak run be.alexandervanhee.gradia ${eOutputPath}"; sleep 0.5; rm -f ${eTempPath}`;
         const defaultSaveCommand = `${mkdirCmd} && ${cropCmd} ${eOutputPath} ` + `&& wl-copy --type image/png < ${eOutputPath}` + `${maybeShare(eOutputPath)} ` + `&& notify-send -a "HyprQuickFrame" -i ${eOutputPath} ` + `-h string:image-path:${eOutputPath} "Screenshot Saved" ` + `"Saved to ${picturesDir}"; rm -f ${eTempPath}`;
         const defaultTempCommand = `${cropCmd} ${eTempSnip} ` + `&& wl-copy --type image/png < ${eTempSnip}` + `${maybeShare(eTempSnip)} ` + `&& notify-send -a "HyprQuickFrame" "Screenshot Copied" ` + `"Copied to clipboard${shareTag}"; ` + `rm -f ${eTempPath} ${eTempSnip}`;
         let cmd;
+        console.log("Evaluated annotationTool value:", theme.annotationTool);
         if (root.editActive)
-            cmd = sattyCommand;
+            cmd = theme.annotationTool === "gradia" ? gradiaCommand : sattyCommand;
         else if (root.tempActive)
             cmd = defaultTempCommand;
         else
@@ -372,159 +375,41 @@ FreezeScreen {
         }
     }
 
-    Rectangle {
+    ControlBar {
         id: segmentedControl
 
+        modes: root.modes
+        mode: root.mode
+        tempActive: root.tempActive
+        editActive: root.editActive
+        theme: theme
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: theme.bottomMargin
-        layer.enabled: true
-        height: root.controlHeight
-        width: root.targetMenuWidth
-        radius: height / 2
-        color: theme.barBackground
-        border.color: theme.barBorder
-        border.width: 1
-
-        Rectangle {
-            id: highlight
-
-            width: root.tabItemSize
-            height: parent.height - 8
-            y: 4
-            radius: height / 2
-            color: theme.accent
-            x: 4 + (root.modes.slice(0, root.modes.indexOf(root.mode)).filter((m) => {
-                if (m === "edit")
-                    return !root.editActive;
-
-                if (m === "temp")
-                    return !root.tempActive;
-
-                return true;
-            }).length * root.tabItemSize)
-
-            Behavior on x {
-                SpringAnimation {
-                    spring: 4
-                    damping: 0.25
-                    mass: 1
-                }
-
-            }
-
+        onModeSelected: (m) => {
+            return root.mode = m;
         }
-
-        Row {
-            anchors.fill: parent
-            anchors.margins: 4
-
-            Repeater {
-                model: root.modes
-
-                Item {
-                    id: tabItem
-
-                    property bool isTemp: modelData === "temp"
-                    property bool isEdit: modelData === "edit"
-                    property bool collapsed: (isTemp && root.tempActive) || (isEdit && root.editActive)
-
-                    width: collapsed ? 0 : root.tabItemSize
-                    height: segmentedControl.height - 8
-                    visible: width > 0
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (modelData === "temp") {
-                                root.tempActive = true;
-                                root.editActive = false;
-                            } else if (modelData === "edit") {
-                                root.editActive = true;
-                                root.tempActive = false;
-                            } else {
-                                root.mode = modelData;
-                            }
-                        }
-                    }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: {
-                            const icons = {
-                                "region": "󰒉",
-                                "window": "󱂬",
-                                "temp": "󰅇",
-                                "edit": "󰏫"
-                            };
-                            const labels = {
-                                "region": "Region",
-                                "window": "Window",
-                                "temp": "Temp",
-                                "edit": "Edit"
-                            };
-                            return icons[modelData] + "  " + labels[modelData];
-                        }
-                        color: (modelData === "temp" || modelData === "edit") ? theme.barText : (root.mode === modelData ? theme.accentText : theme.barText)
-                        font.weight: (modelData === "temp" || modelData === "edit") ? Font.Medium : (root.mode === modelData ? Font.Bold : Font.Medium)
-                        font.pixelSize: 15
-                        opacity: tabItem.collapsed ? 0 : 1
-
-                        Behavior on opacity {
-                            enabled: root.tempActive || root.editActive
-
-                            NumberAnimation {
-                                duration: 150
-                            }
-
-                        }
-
-                    }
-
-                    Behavior on width {
-                        SpringAnimation {
-                            spring: 4
-                            damping: 0.25
-                            mass: 1
-                        }
-
-                    }
-
-                }
-
-            }
-
+        onTempToggled: {
+            root.tempActive = true;
+            root.editActive = false;
         }
-
-        Behavior on width {
-            SpringAnimation {
-                spring: 4
-                damping: 0.25
-                mass: 1
-            }
-
+        onEditToggled: {
+            root.editActive = true;
+            root.tempActive = false;
         }
-
-        layer.effect: DropShadow {
-            transparentBorder: true
-            radius: 8
-            samples: 16
-            color: theme.barShadow
-            verticalOffset: 4
-        }
-
     }
 
     QuickToggle {
         id: editToggleButton
 
         active: root.editActive
-        icon: "󰏫"
+        icon: "" // "󰏫"
+        imageSource: Qt.resolvedUrl("assets/icons/edit.svg")
         iconColor: theme.toggleEdit
         backgroundColor: theme.toggleBackground
         shadowColor: theme.toggleShadow
+        borderColor: theme.barBorder
+        borderWidth: 1
         targetX: (root.width - root.targetMenuWidth) / 2 - 15 - width
         targetY: segmentedControl.y + segmentedControl.height / 2
         sourceX: root.width / 2 - 204 + 32
@@ -535,10 +420,13 @@ FreezeScreen {
         id: tempToggleButton
 
         active: root.tempActive
-        icon: "󰅇"
+        icon: "" // "󰏫"
+        imageSource: Qt.resolvedUrl("assets/icons/temp.svg")
         iconColor: theme.toggleTemp
         backgroundColor: theme.toggleBackground
         shadowColor: theme.toggleShadow
+        borderColor: theme.barBorder
+        borderWidth: 1
         targetX: (root.width + root.targetMenuWidth) / 2 + 15
         targetY: segmentedControl.y + segmentedControl.height / 2
         sourceX: root.width / 2 - 204 + 332
@@ -549,7 +437,8 @@ FreezeScreen {
         id: shareToggleButton
 
         active: root.shareActive
-        icon: "󰄜"
+        icon: "" // "󰄜"
+        imageSource: root.connectivityStatus === 2 ? Qt.resolvedUrl("assets/icons/share-error.svg") : Qt.resolvedUrl("assets/icons/share.svg")
         iconColor: {
             if (root.connectivityStatus === 1)
                 return theme.shareConnected;
@@ -561,6 +450,8 @@ FreezeScreen {
         }
         backgroundColor: root.connectivityStatus === 2 ? theme.shareErrorBackground : theme.toggleBackground
         shadowColor: theme.toggleShadow
+        borderColor: theme.barBorder
+        borderWidth: 1
         pulse: root.connectivityStatus === 0
         targetX: (root.width + root.targetMenuWidth) / 2 + 15 + (root.tempActive ? 44 + 10 : 0)
         targetY: segmentedControl.y + segmentedControl.height / 2

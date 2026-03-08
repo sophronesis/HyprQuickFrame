@@ -34,7 +34,7 @@ Item {
     property real dimOpacity: 0.6
     property real borderRadius: 10
     property real outlineThickness: 2
-    property url fragmentShader: Qt.resolvedUrl("dimming.frag.qsb")
+    property url fragmentShader: Qt.resolvedUrl("../shaders/dimming.frag.qsb")
     property point startPos
     property real selectionX: 0
     property real selectionY: 0

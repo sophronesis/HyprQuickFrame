@@ -19,6 +19,7 @@ QtObject {
     readonly property int outlineThickness: _get("outlineThickness", 2)
     readonly property real bottomMargin: _get("bottomMargin", 60)
     readonly property bool animations: _get("animations", true)
+    readonly property string annotationTool: _get("annotationTool", "satty")
     readonly property color barBackground: _get("barBackground", Qt.rgba(0.15, 0.15, 0.15, 0.4))
     readonly property color barBorder: _get("barBorder", Qt.rgba(1, 1, 1, 0.15))
     readonly property color barText: _get("barText", "#AAFFFFFF")

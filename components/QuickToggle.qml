@@ -1,25 +1,3 @@
-/*
- * Copyright (c) 2026 Ronin-CK
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
 import Qt5Compat.GraphicalEffects
 import QtQuick
 
@@ -38,12 +16,15 @@ Rectangle {
     property color shadowColor: "#80000000"
     readonly property real buttonSize: 44
     readonly property real inactiveScale: 0.4
-    readonly property real activeIconSize: 18
-    readonly property real inactiveIconSize: 15
+    readonly property real activeIconSize: 30
+    readonly property real inactiveIconSize: 20
     readonly property real pulseMinOpacity: 0.3
     readonly property int springAnimDuration: 350
     readonly property int fadeAnimDuration: 250
     readonly property int pulseStepDuration: 600
+    property url imageSource: ""
+    property color borderColor: "transparent"
+    property int borderWidth: 0
 
     signal clicked()
 
@@ -57,11 +38,15 @@ Rectangle {
     height: buttonSize
     radius: buttonSize / 2
     color: backgroundColor
+    border.color: borderColor
+    border.width: borderWidth
     x: active ? targetX : sourceX
     y: targetY - height / 2
     scale: active ? (hovered ? 1.1 : 1) : inactiveScale
     opacity: active ? 1 : 0
+    antialiasing: true
     layer.enabled: true
+    layer.smooth: true
 
     Text {
         id: iconText
@@ -71,6 +56,7 @@ Rectangle {
         color: root.iconColor
         font.pixelSize: root.active ? root.activeIconSize : root.inactiveIconSize
         font.weight: root.active ? Font.Bold : Font.Medium
+        visible: root.imageSource === ""
 
         Behavior on font.pixelSize {
             NumberAnimation {
@@ -81,13 +67,75 @@ Rectangle {
         }
 
         SequentialAnimation on opacity {
-            id: pulseAnim
+            id: pulseAnimText
 
-            running: root.active && root.pulse
+            running: root.active && root.pulse && root.imageSource === ""
             loops: Animation.Infinite
             onRunningChanged: {
                 if (!running)
                     iconText.opacity = 1;
+
+            }
+
+            NumberAnimation {
+                to: root.pulseMinOpacity
+                duration: root.pulseStepDuration
+                easing.type: Easing.InOutQuad
+            }
+
+            NumberAnimation {
+                to: 1
+                duration: root.pulseStepDuration
+                easing.type: Easing.InOutQuad
+            }
+
+        }
+
+    }
+
+    Item {
+        id: iconImageContainer
+
+        anchors.centerIn: parent
+        width: root.active ? root.activeIconSize : root.inactiveIconSize
+        height: width
+        visible: root.imageSource !== ""
+
+        Image {
+            id: iconImage
+
+            anchors.fill: parent
+            source: root.imageSource
+            sourceSize.width: width
+            sourceSize.height: height
+            visible: false
+            fillMode: Image.PreserveAspectFit
+            smooth: true
+            mipmap: true
+        }
+
+        ColorOverlay {
+            anchors.fill: iconImage
+            source: iconImage
+            color: root.iconColor
+        }
+
+        Behavior on width {
+            NumberAnimation {
+                duration: root.springAnimDuration
+                easing.type: Easing.OutQuad
+            }
+
+        }
+
+        SequentialAnimation on opacity {
+            id: pulseAnimImage
+
+            running: root.active && root.pulse && root.imageSource !== ""
+            loops: Animation.Infinite
+            onRunningChanged: {
+                if (!running)
+                    iconImageContainer.opacity = 1;
 
             }
 

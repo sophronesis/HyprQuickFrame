@@ -1,8 +1,3 @@
-# Copyright (c) 2026 Ronin-CK
-#
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
-
 # Main highlight color on the active tab
 accent = "#cba6f7"
 # Text color on the active tab (should contrast with accent)
@@ -17,6 +12,8 @@ outlineThickness = 2
 bottomMargin = 60
 # Global animation toggle (true/false)
 animations = true
+# Tool to use for the "edit" screenshot action (e.g., "satty" or "gradia")
+annotationTool = "satty"
 
 [bar]
 # Segmented control background
